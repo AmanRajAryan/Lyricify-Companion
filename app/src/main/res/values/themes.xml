@@ -1,0 +1,58 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+  <style name="Base.AppTheme" parent="Theme.Material3.DayNight.NoActionBar">
+  </style>
+
+
+
+
+<style name="Theme.LyricifyCompanion" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <item name="colorPrimary">#6200EE</item>
+    <item name="colorSecondary">#03DAC5</item>
+</style>
+
+
+
+ <style name="RoundedBottomSheetTheme" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/RoundedBottomSheetStyle</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/sheet_background</item>
+    </style>
+
+    <style name="RoundedBottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet">
+        <item name="shapeAppearanceOverlay">@style/RoundedBottomSheetShape</item>
+        <item name="backgroundTint">@color/sheet_background</item>
+        <item name="android:background">@null</item>
+    </style>
+
+    <style name="RoundedBottomSheetShape" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">20dp</item>
+        <item name="cornerSizeTopRight">20dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+
+  <style name="AppTheme" parent="Base.AppTheme" />
+  
+  
+      <style name="Theme.TransparentCompat" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+  
+  
+  
+  
+  
+</resources>
+
+
+
