@@ -9,7 +9,7 @@ import android.graphics.ImageDecoder;
 import android.graphics.drawable.AnimatedImageDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
-import android.media.AudioManager; // <--- IMPORTED
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +32,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
@@ -145,7 +146,6 @@ public class ConverterSheet extends BottomSheetDialogFragment {
 
         initViews(view);
         
-        // Stop VideoView from taking focus
         videoViewOriginal.setFocusable(false);
         videoViewOriginal.setFocusableInTouchMode(false);
 
@@ -217,12 +217,18 @@ public class ConverterSheet extends BottomSheetDialogFragment {
     }
 
     private void setupDropdown(AutoCompleteTextView v, String[] opts, String def) {
-        v.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, opts));
+        // FIX: Use your custom 'spinner_item' layout
+        v.setAdapter(new ArrayAdapter<>(requireContext(), R.layout.spinner_item, opts));
         v.setText(def, false);
         v.setOnClickListener(view -> v.showDropDown());
     }
 
     private void startConversion() {
+        final String sRes = inputRes.getText().toString();
+        final String sFps = inputFps.getText().toString();
+        final String sQuality = inputQuality.getText().toString();
+        final String sSpeed = inputSpeed.getText().toString();
+
         setUiState(false);
         progressBar.setVisibility(View.VISIBLE);
         tvStatus.setText("Preparing...");
@@ -235,16 +241,7 @@ public class ConverterSheet extends BottomSheetDialogFragment {
             File outputDir = requireContext().getCacheDir();
             String outputPath = new File(outputDir, "temp_output.avif").getAbsolutePath();
 
-            final String[] inputs = new String[4];
-            requireActivity().runOnUiThread(() -> {
-                inputs[0] = inputRes.getText().toString();
-                inputs[1] = inputFps.getText().toString();
-                inputs[2] = inputQuality.getText().toString();
-                inputs[3] = inputSpeed.getText().toString();
-            });
-            try { Thread.sleep(50); } catch (Exception e){}
-
-            String cmd = CommandBuilder.build(realInputPath, outputPath, inputs[0], inputs[1], inputs[2], inputs[3]);
+            String cmd = CommandBuilder.build(realInputPath, outputPath, sRes, sFps, sQuality, sSpeed);
 
             new FFmpegBinaryHandler().execute(requireContext(), cmd, new FFmpegBinaryHandler.FFmpegListener() {
                 @Override
@@ -296,7 +293,6 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         tvOriginalInfo.setText("Original : " + MediaUtils.getResolution(getContext(), inputUri) + " , " + MediaUtils.formatFileSize(orgSize));
         tvAvifInfo.setText("AVIF : " + MediaUtils.formatFileSize(finalTempFile.length()));
 
-        // --- FIX: STOP AUDIO FOCUS STEALING ---
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             videoViewOriginal.setAudioFocusRequest(AudioManager.AUDIOFOCUS_NONE);
         }
@@ -341,10 +337,22 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         if (finalTempFile == null || !finalTempFile.exists()) return;
 
         if (calledFromLyricify) {
-            if (listener != null) {
-                listener.onConversionSuccess(finalTempFile.getAbsolutePath());
+            try {
+                // Securely share file using FileProvider (Requires provider_paths.xml setup)
+                Uri contentUri = FileProvider.getUriForFile(
+                    requireContext(),
+                    "aman.lyricifycompanion.fileprovider",
+                    finalTempFile
+                );
+
+                if (listener != null) {
+                    listener.onConversionSuccess(contentUri.toString());
+                }
+                dismiss();
+            } catch (Exception e) {
+                // Fallback if provider not set up, or on error
+                Toast.makeText(getContext(), "FileProvider Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
-            dismiss();
         } else {
             Uri savedUri = MediaUtils.saveToDownloads(getContext(), finalTempFile);
             if (savedUri != null) {
