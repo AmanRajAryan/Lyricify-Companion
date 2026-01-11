@@ -75,7 +75,7 @@
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="@color/divider_color"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="16dp" />
 
     <LinearLayout
         android:id="@+id/layoutControls"
@@ -83,6 +83,42 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="24dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:id="@+id/btnFormatAvif"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AVIF"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/accent_color"
+                android:padding="8dp"/>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="16dp"
+                android:background="@color/text_secondary"
+                android:layout_marginHorizontal="12dp"/>
+
+            <TextView
+                android:id="@+id/btnFormatWebp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="WebP"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_secondary"
+                android:padding="8dp"/>
+
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -251,7 +287,7 @@
             android:id="@+id/tvAvifInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="AVIF : 480p , 106 KB"
+            android:text="Output : 480p , 106 KB"
             android:textColor="@color/accent_color"
             android:textStyle="bold"
             android:textSize="13sp"

@@ -32,6 +32,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -57,6 +58,7 @@ public class ConverterSheet extends BottomSheetDialogFragment {
     private boolean calledFromLyricify = false; 
 
     private TextView tvStatus, tvTitle, tvOriginalInfo, tvAvifInfo, btnTopSave;
+    private TextView btnFormatAvif, btnFormatWebp; // Selector Buttons
     private ImageView btnBack, imgAvifPreview;
     private LinearLayout layoutControls, layoutPreview;
     private VideoView videoViewOriginal;
@@ -65,6 +67,8 @@ public class ConverterSheet extends BottomSheetDialogFragment {
     private MaterialCheckBox cbAutoConfirm;
     
     private AutoCompleteTextView inputRes, inputQuality, inputFps, inputSpeed;
+
+    private String currentFormat = "avif"; // "avif" or "webp"
 
     public static ConverterSheet newInstance(Uri uri, boolean calledFromLyricify) {
         ConverterSheet f = new ConverterSheet();
@@ -152,6 +156,10 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         setupInputs();
         setupModeUI();
 
+        // Selector Listeners
+        btnFormatAvif.setOnClickListener(v -> setFormat("avif"));
+        btnFormatWebp.setOnClickListener(v -> setFormat("webp"));
+
         btnConvert.setOnClickListener(v -> startConversion());
         btnTopSave.setOnClickListener(v -> saveAndDismiss());
         
@@ -196,6 +204,8 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         inputQuality = v.findViewById(R.id.inputQuality);
         inputFps = v.findViewById(R.id.inputFps);
         inputSpeed = v.findViewById(R.id.inputSpeed);
+        btnFormatAvif = v.findViewById(R.id.btnFormatAvif);
+        btnFormatWebp = v.findViewById(R.id.btnFormatWebp);
     }
 
     private void setupModeUI() {
@@ -205,6 +215,22 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         } else {
             btnTopSave.setText("SAVE");
             cbAutoConfirm.setText("Save automatically");
+        }
+        // Default format
+        setFormat("avif");
+    }
+
+    private void setFormat(String format) {
+        this.currentFormat = format;
+        int accent = ContextCompat.getColor(requireContext(), R.color.accent_color);
+        int secondary = ContextCompat.getColor(requireContext(), R.color.text_secondary);
+
+        if ("avif".equals(format)) {
+            btnFormatAvif.setTextColor(accent);
+            btnFormatWebp.setTextColor(secondary);
+        } else {
+            btnFormatAvif.setTextColor(secondary);
+            btnFormatWebp.setTextColor(accent);
         }
     }
 
@@ -217,7 +243,6 @@ public class ConverterSheet extends BottomSheetDialogFragment {
     }
 
     private void setupDropdown(AutoCompleteTextView v, String[] opts, String def) {
-        // FIX: Use your custom 'spinner_item' layout
         v.setAdapter(new ArrayAdapter<>(requireContext(), R.layout.spinner_item, opts));
         v.setText(def, false);
         v.setOnClickListener(view -> v.showDropDown());
@@ -239,9 +264,12 @@ public class ConverterSheet extends BottomSheetDialogFragment {
             if (realInputPath == null) return;
             
             File outputDir = requireContext().getCacheDir();
-            String outputPath = new File(outputDir, "temp_output.avif").getAbsolutePath();
+            // Determine extension based on format
+            String extension = "avif".equals(currentFormat) ? "avif" : "webp";
+            String outputPath = new File(outputDir, "temp_output." + extension).getAbsolutePath();
 
-            String cmd = CommandBuilder.build(realInputPath, outputPath, sRes, sFps, sQuality, sSpeed);
+            // Pass format to command builder
+            String cmd = CommandBuilder.build(realInputPath, outputPath, sRes, sFps, sQuality, sSpeed, currentFormat);
 
             new FFmpegBinaryHandler().execute(requireContext(), cmd, new FFmpegBinaryHandler.FFmpegListener() {
                 @Override
@@ -291,7 +319,9 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         long orgSize = 0;
         try { orgSize = requireContext().getContentResolver().openInputStream(inputUri).available(); } catch(Exception e){}
         tvOriginalInfo.setText("Original : " + MediaUtils.getResolution(getContext(), inputUri) + " , " + MediaUtils.formatFileSize(orgSize));
-        tvAvifInfo.setText("AVIF : " + MediaUtils.formatFileSize(finalTempFile.length()));
+        
+        String extLabel = currentFormat.toUpperCase();
+        tvAvifInfo.setText(extLabel + " : " + MediaUtils.formatFileSize(finalTempFile.length()));
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             videoViewOriginal.setAudioFocusRequest(AudioManager.AUDIOFOCUS_NONE);
@@ -304,6 +334,7 @@ public class ConverterSheet extends BottomSheetDialogFragment {
             videoViewOriginal.start();
         });
 
+        // ImageDecoder supports both AVIF (API 31+) and WebP (API 28+ for animated)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
                 ImageDecoder.Source source = ImageDecoder.createSource(finalTempFile);
@@ -312,7 +343,11 @@ public class ConverterSheet extends BottomSheetDialogFragment {
                 if (drawable instanceof AnimatedImageDrawable) {
                     ((AnimatedImageDrawable) drawable).start();
                 }
-            } catch (IOException e) { e.printStackTrace(); }
+            } catch (IOException e) { 
+                e.printStackTrace(); 
+                // Fallback
+                imgAvifPreview.setImageURI(Uri.fromFile(finalTempFile));
+            }
         } else {
             imgAvifPreview.setImageURI(Uri.fromFile(finalTempFile));
         }
@@ -338,7 +373,6 @@ public class ConverterSheet extends BottomSheetDialogFragment {
 
         if (calledFromLyricify) {
             try {
-                // Securely share file using FileProvider (Requires provider_paths.xml setup)
                 Uri contentUri = FileProvider.getUriForFile(
                     requireContext(),
                     "aman.lyricifycompanion.fileprovider",
@@ -350,11 +384,14 @@ public class ConverterSheet extends BottomSheetDialogFragment {
                 }
                 dismiss();
             } catch (Exception e) {
-                // Fallback if provider not set up, or on error
                 Toast.makeText(getContext(), "FileProvider Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
             }
         } else {
-            Uri savedUri = MediaUtils.saveToDownloads(getContext(), finalTempFile);
+            // Determine MIME type and extension
+            String mime = "image/" + currentFormat;
+            String ext = "." + currentFormat;
+            
+            Uri savedUri = MediaUtils.saveToDownloads(getContext(), finalTempFile, mime, ext);
             if (savedUri != null) {
                 Toast.makeText(getContext(), "Saved to Downloads", Toast.LENGTH_SHORT).show();
                 if (listener != null) listener.onConversionSuccess(savedUri.toString());
@@ -369,5 +406,7 @@ public class ConverterSheet extends BottomSheetDialogFragment {
         btnConvert.setEnabled(enabled);
         inputRes.setEnabled(enabled);
         inputFps.setEnabled(enabled);
+        btnFormatAvif.setEnabled(enabled);
+        btnFormatWebp.setEnabled(enabled);
     }
 }

@@ -48,11 +48,16 @@ public class MediaUtils {
         } catch (Exception e) { return null; }
     }
 
-    public static Uri saveToDownloads(Context context, File file) {
+    /**
+     * Saves the file to the Downloads folder.
+     * @param mimeType e.g., "image/avif" or "image/webp"
+     * @param extension e.g., ".avif" or ".webp"
+     */
+    public static Uri saveToDownloads(Context context, File file, String mimeType, String extension) {
         ContentResolver resolver = context.getContentResolver();
         ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, "Lyricify_" + System.currentTimeMillis() + ".avif");
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "image/avif");
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, "Lyricify_" + System.currentTimeMillis() + extension);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
         values.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/LyricifyConverted");
 
         Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
